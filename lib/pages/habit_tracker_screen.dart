@@ -66,7 +66,6 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: TableCalendar(
-                  locale: 'de_DE',
                   focusedDay: model.selectedDate,
                   firstDay: DateTime(2000),
                   lastDay: DateTime(2100),
