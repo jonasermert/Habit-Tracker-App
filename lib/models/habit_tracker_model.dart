@@ -1,39 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:habit_tracker/pages/habit_tracker_screen.dart';
+
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:provider/provider.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => HabitTrackerModel()),
-        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
-      ],
-      child: Consumer<ThemeNotifier>(
-        builder: (context, themeNotifier, child) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData.light(),
-            darkTheme: ThemeData.dark(),
-            themeMode:
-                themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const HabitTrackerScreen(),
-          );
-        },
-      ),
-    );
-  }
-}
 
 class HabitTrackerModel extends ChangeNotifier {
   Map<String, List<Habit>> _habits = {};
@@ -44,7 +13,6 @@ class HabitTrackerModel extends ChangeNotifier {
   }
 
   DateTime get selectedDate => _selectedDate;
-
   List<Habit> get habits => _habits[_dateKey(_selectedDate)] ?? [];
 
   void setSelectedDate(DateTime date) {
@@ -53,11 +21,9 @@ class HabitTrackerModel extends ChangeNotifier {
   }
 
   void addHabit(String title) {
-    final key = _dateKey(_selectedDate);
-    if (!_habits.containsKey(key)) {
-      _habits[key] = [];
-    }
-    _habits[key]!.add(Habit(title: title));
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _habits.putIfAbsent(_dateKey(_selectedDate), () => []).add(Habit(title: trimmed));
     notifyListeners();
     _saveData();
   }
@@ -85,13 +51,18 @@ class HabitTrackerModel extends ChangeNotifier {
     try {
       final file = await _localFile;
       if (await file.exists()) {
-        final data =
-            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
         _habits = data.map((key, value) => MapEntry(
-            key, (value as List).map((e) => Habit.fromJson(e)).toList()));
+          key,
+          (value as List).map((entry) => Habit.fromJson(entry as Map<String, dynamic>)).toList(),
+        ));
         notifyListeners();
       }
-    } catch (e) {}
+    } on FileSystemException catch (error) {
+      debugPrint('Gewohnheiten konnten nicht geladen werden: $error');
+    } on FormatException catch (error) {
+      debugPrint('Ungültige Gewohnheitsdaten: $error');
+    }
   }
 
   Future<File> get _localFile async {
@@ -107,23 +78,9 @@ class Habit {
   Habit({required this.title, this.isDone = false});
 
   factory Habit.fromJson(Map<String, dynamic> json) => Habit(
-        title: json['title'],
-        isDone: json['isDone'],
-      );
+    title: json['title'] as String,
+    isDone: json['isDone'] as bool,
+  );
 
-  Map<String, dynamic> toJson() => {
-        'title': title,
-        'isDone': isDone,
-      };
-}
-
-class ThemeNotifier extends ChangeNotifier {
-  bool _isDarkMode = false;
-
-  bool get isDarkMode => _isDarkMode;
-
-  void toggleTheme() {
-    _isDarkMode = !_isDarkMode;
-    notifyListeners();
-  }
+  Map<String, dynamic> toJson() => {'title': title, 'isDone': isDone};
 }
