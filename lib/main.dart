@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'models/habit_tracker_model.dart';
 import 'pages/habit_tracker_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,16 +20,13 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
       child: Consumer<ThemeNotifier>(
-        builder: (context, themeNotifier, child) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData.light(),
-            darkTheme: ThemeData.dark(),
-            themeMode:
-                themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const HabitTrackerScreen(),
-          );
-        },
+        builder: (context, themeNotifier, _) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: const HabitTrackerScreen(),
+        ),
       ),
     );
   }
